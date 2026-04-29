@@ -1,11 +1,28 @@
-<div align="center">
+# AprovaConcursos - Plataforma de Estudos para Concursos
+> **STATUS: Versão Beta 1.0 (Instável)**
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Este é um sistema preparatório profissional para concursos públicos.
 
-  <h1>Built with AI Studio</h2>
+## 🚀 Versão Beta 1.0 - Funcionalidades Atuais
+- **Canvas Wix-Flow v5.0**: Editor de conteúdo modular com suporte a:
+  - Estilização tipográfica (Fontes, Cores, Tamanhos).
+  - Blocos de Mídia: Vídeo (YT/Drive), Áudio (MP3/Drive), Slides.
+  - Elementos Didáticos: Tabela de Verdade, Leis, Dicas, Alertas.
+  - Quizzes integrados na trilha.
+- **Gamificação Sensorial**:
+  - Feedback sonoro em acertos, erros e conclusões.
+  - Cronômetro tático com tique-taque de 10s.
+- **Painel Admin Master**:
+  - Gestão de Usuários (Cargo, Contato, 2FA).
+  - Lixeira do Sistema (Soft-delete).
+  - Importação/Exportação Inteligente via JSON.
+- **IA de Estudo**:
+  - Estudo Inteligente IA com técnica Feynman.
+  - Gerador de Questões Adaptativo.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## 📋 Backup de Segurança
+Antes de realizar alterações estruturais, exporte o backup completo em:
+`Painel Administrativo > Central de Comando > Exportar Backup`.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
-
-</div>
+---
+*Snaphost realizado em 2024-03-21*

@@ -1,0 +1,81 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- FUNÇÕES AUXILIARES ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    // --- REGRAS DE COLEÇÃO ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /roles_admin/{adminUid} {
+      allow get: if isSignedIn();
+      allow create: if isOwner(adminUid);
+      allow list, update, delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /subjects/{subjectId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /questions/{questionId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /courses/{courseId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /users/{userId}/history/{historyId} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+    }
+
+    match /users/{userId}/notes/{noteId} {
+      allow get, list: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+
+    match /users/{userId}/progress/main {
+      allow get: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
+    }
+    
+    match /settings/{settingId} {
+      allow get: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /system_logs/{logId} {
+      allow get, list, create: if isAdmin();
+    }
+  }
+}
