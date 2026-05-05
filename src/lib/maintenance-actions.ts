@@ -177,7 +177,7 @@ export async function purgeOrphanAttempts() {
   return { count: 0 };
 }
 
-async function updateDoc(ref: any, data: any) {
+async function updateDocument(ref: any, data: any) {
   const { firestore } = initializeFirebase();
   await setDoc(ref, data, { merge: true });
 }

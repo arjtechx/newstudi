@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "596031963442",
+    "project_id": "aprovaconcursos-39292868-895af",
+    "storage_bucket": "aprovaconcursos-39292868-895af.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:596031963442:android:4e4622f448201ac1c5172b",
+        "android_client_info": {
+          "package_name": "com.arjtechx.aprovaconcursos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "596031963442-ln90leqsq14o1noqqu3iev2pcobg4f1s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCI4EkeZog-3supbXgSQj0HpgJQFGZ5-uA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "596031963442-ln90leqsq14o1noqqu3iev2pcobg4f1s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

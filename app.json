@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "93d3a54f-b575-403c-a461-a77e7a1f798e"
+      }
+    },
+    "android": {
+      "package": "com.arjtechx.aprovaconcursos"
+    }
+  }
+}

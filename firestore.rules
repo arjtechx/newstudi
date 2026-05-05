@@ -1,4 +1,3 @@
-
 rules_version = '2';
 
 service cloud.firestore {
@@ -23,15 +22,25 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
+      
+      // Bloqueia a criação de usuários já com cargo de admin pelo client
+      allow create: if isOwner(userId) && (!request.resource.data.keys().hasAny(['role']) || request.resource.data.role != 'admin');
+      
+      // Impede que o usuário mude seu próprio cargo ou adicione XP infinito via client
+      allow update: if isAdmin() || (
+        isOwner(userId) && 
+        (!request.resource.data.keys().hasAny(['role'])) && 
+        (request.resource.data.xp <= resource.data.xp + 200) // Proteção básica contra hack de XP
+      );
+      
       allow delete: if isAdmin();
     }
 
+    // VULNERABILIDADE CRÍTICA CORRIGIDA: Ninguém pode se dar permissão de Admin pelo client.
     match /roles_admin/{adminUid} {
       allow get: if isSignedIn();
-      allow create: if isOwner(adminUid);
-      allow list, update, delete: if isAdmin();
+      allow create, update, delete: if false; // APENAS VIA CONSOLE DO FIREBASE OU BACKEND
+      allow list: if isAdmin();
     }
 
     match /notifications/{notificationId} {
@@ -57,6 +66,7 @@ service cloud.firestore {
     match /users/{userId}/history/{historyId} {
       allow get, list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId);
+      allow update, delete: if false; // Histórico é imutável
     }
 
     match /users/{userId}/notes/{noteId} {

@@ -1,0 +1,12 @@
+{
+  "name": "web",
+  "domain": "app1.arjtechbr.site",
+  "port": 3000,
+  "target": "127.0.0.1",
+  "protocol": "http",
+  "tunnelId": "70622a59-3ea9-4dff-a72a-75c58dbc3dd7",
+  "credPath": "C:\\Users\\gabri\\.cloudflared\\70622a59-3ea9-4dff-a72a-75c58dbc3dd7.json",
+  "configPath": "C:\\Users\\gabri\\.cloudflared\\config.yml",
+  "createdAt": "2026-05-05T17:49:45.630Z",
+  "platform": "win32"
+}

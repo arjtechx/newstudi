@@ -27,7 +27,8 @@ import { differenceInDays, startOfDay } from 'date-fns';
 // --- System Logs (Versionamento) ---
 export const logAction = async (firestore: Firestore, log: Omit<SystemLog, 'id' | 'timestamp'>) => {
   const logRef = doc(collection(firestore, 'system_logs'));
-  setDoc(logRef, { ...log, id: logRef.id, timestamp: serverTimestamp() });
+  const safeLog = JSON.parse(JSON.stringify(log)); // Remove campos undefined
+  await setDoc(logRef, { ...safeLog, id: logRef.id, timestamp: serverTimestamp() });
 };
 
 export const getSystemLogs = async (firestore: Firestore, limitCount = 50): Promise<SystemLog[]> => {
@@ -83,17 +84,19 @@ export const getSystemSettings = async (firestore: Firestore): Promise<SystemSet
   }
 };
 
-export const saveSystemSettings = (firestore: Firestore, settings: Partial<SystemSettings>, adminUser?: any) => {
+export const saveSystemSettings = async (firestore: Firestore, settings: Partial<SystemSettings>, adminUser?: any) => {
   const settingsRef = doc(firestore, 'settings', 'main');
-  setDoc(settingsRef, settings, { merge: true });
+  const safeSettings = JSON.parse(JSON.stringify(settings)); // Evitar o erro do Firebase com undefined
+
+  await setDoc(settingsRef, safeSettings, { merge: true });
   if (adminUser) {
-    logAction(firestore, {
-      userId: adminUser.id,
-      userName: adminUser.name,
+    await logAction(firestore, {
+      userId: adminUser.id || 'unknown',
+      userName: adminUser.name || 'Admin',
       action: 'UPDATE',
       entityType: 'SETTINGS',
       entityId: 'main',
-      payloadAfter: settings
+      payloadAfter: safeSettings
     });
   }
 };
@@ -221,6 +224,12 @@ export const saveCourse = (firestore: Firestore, course: Partial<Course>, adminU
   if (adminUser) logAction(firestore, { userId: adminUser.id, userName: adminUser.name, action: course.id ? 'UPDATE' : 'CREATE', entityType: 'COURSE', entityId: id, payloadAfter: data });
 };
 
+export const deleteCourse = (firestore: Firestore, id: string, adminUser?: any) => {
+  const courseRef = doc(firestore, 'courses', id);
+  updateDoc(courseRef, { deletedAt: serverTimestamp() });
+  if (adminUser) logAction(firestore, { userId: adminUser.id, userName: adminUser.name, action: 'DELETE', entityType: 'COURSE', entityId: id });
+};
+
 // --- Performance e Dashboard ---
 export const getHistory = async (firestore: Firestore, userId: string) => {
   const historyCol = collection(firestore, `users/${userId}/history`);
@@ -251,20 +260,84 @@ export const getScientificDashboardData = async (firestore: Firestore, userId: s
   const correct = history.filter((h: any) => h.isCorrect).length;
   const acc = total > 0 ? Math.round((correct / total) * 100) : 0;
 
+  // Analisador de Fraquezas: Agrupar erros por tópico
+  const errorMap: Record<string, { count: number, recentErrorId: string, timestamp: number }> = {};
+  history.filter((h: any) => !h.isCorrect).forEach((h: any) => {
+    const topicName = h.topic || h.subject || 'Geral';
+    const ts = h.timestamp?.toMillis ? h.timestamp.toMillis() : 0;
+    
+    if (!errorMap[topicName]) {
+      errorMap[topicName] = { count: 0, recentErrorId: h.questionId, timestamp: ts };
+    }
+    
+    errorMap[topicName].count += 1;
+    if (ts >= errorMap[topicName].timestamp) {
+      errorMap[topicName].recentErrorId = h.questionId;
+      errorMap[topicName].timestamp = ts;
+    }
+  });
+
+  // Transforma o mapa em array e ordena pelos maiores erros
+  const topErrosData = Object.entries(errorMap)
+    .map(([topic, data]) => ({ topic, errorCount: data.count, recentErrorId: data.recentErrorId }))
+    .sort((a, b) => b.errorCount - a.errorCount)
+    .slice(0, 3); // Pega os 3 principais
+
+  // Buscar os detalhes das questões erradas
+  const topErros = await Promise.all(topErrosData.map(async (err) => {
+    if (!err.recentErrorId) return err;
+    try {
+      const qSnap = await getDoc(doc(firestore, 'questions', err.recentErrorId));
+      if (qSnap.exists()) {
+        const qData = qSnap.data();
+        return {
+          ...err,
+          enunciado: qData.enunciado,
+          explicacao: qData.explicacao,
+          correta: qData.alternativas[qData.correta]
+        };
+      }
+    } catch (e) {}
+    return err;
+  }));
+
+  // Progresso Mental: Precisão por Matéria
+  const subjectMap: Record<string, { total: number, correct: number }> = {};
+  history.forEach((h: any) => {
+    const subj = h.subject || 'Geral';
+    if (!subjectMap[subj]) subjectMap[subj] = { total: 0, correct: 0 };
+    subjectMap[subj].total += 1;
+    if (h.isCorrect) subjectMap[subj].correct += 1;
+  });
+
+  const subjectStats = Object.entries(subjectMap).map(([subject, data]) => ({
+    subject: subject.length > 12 ? subject.substring(0, 12) + '...' : subject,
+    accuracy: Math.round((data.correct / data.total) * 100),
+    fullMark: 100
+  }));
+
+  const coursesProgressList = courses.map(course => {
+    const completed = getCourseProgress(course, u.completedLessons || []);
+    return { title: course.title, percentage: completed };
+  }).filter(c => c.percentage > 0).sort((a, b) => b.percentage - a.percentage);
+
+  // Se não houver curso iniciado, mostra os existentes zerados (até 3)
+  const displayCourses = coursesProgressList.length > 0 ? coursesProgressList : courses.slice(0,3).map(c => ({ title: c.title, percentage: 0 }));
+
   return {
     taxaAcerto: acc,
     totalQuestoes: total,
     totalAcertos: correct,
     risco: acc < 50 ? 'ALTO' : 'BAIXO',
-    topErros: [],
+    topErros,
     revisaoDoDia: [],
     proximaMissao: { titulo: 'Continuar Estudos', descricao: 'Continue sua trilha tática.' },
     sessaoSugerida: { materias: [] },
     simulado: { notaAtual: acc / 10, notaCorte: 7.0 },
     consistencia: { nivel: 'Ideal', status: 'OK' },
     alertasCognitivos: [],
-    subjectStats: [],
-    coursesProgress: []
+    subjectStats,
+    coursesProgress: displayCourses
   };
 };
 
